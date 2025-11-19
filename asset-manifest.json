@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/MyWishlistApp/static/js/main.021964c4.js",
-    "index.html": "/MyWishlistApp/index.html",
-    "main.021964c4.js.map": "/MyWishlistApp/static/js/main.021964c4.js.map"
+    "main.js": "/MyWishListApp/static/js/main.2b47813c.js",
+    "index.html": "/MyWishListApp/index.html",
+    "main.2b47813c.js.map": "/MyWishListApp/static/js/main.2b47813c.js.map"
   },
   "entrypoints": [
-    "static/js/main.021964c4.js"
+    "static/js/main.2b47813c.js"
   ]
 }
