@@ -5,14 +5,14 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "predeploy": "npm run build",
+    "predeploy": "PUBLIC_URL=/MyWishlistApp/ npm run build",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test"
   },
   "dependencies": {
+    "firebase": "^10.12.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "firebase": "^10.12.3",
     "react-scripts": "5.0.1"
   },
   "browserslist": {
@@ -26,5 +26,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
