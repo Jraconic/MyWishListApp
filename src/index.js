@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom/client';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, query, onSnapshot, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -6,17 +7,16 @@ import { getFirestore, collection, query, onSnapshot, doc, addDoc, serverTimesta
 // --- CONFIGURATION & FIREBASE SETUP ---
 
 // Use fallback values if environment variables (__app_id, __firebase_config) are not provided 
-// (which they aren't on external hosts like Vercel). This prevents the app from crashing.
 const isCanvasEnvironment = typeof __app_id !== 'undefined';
 const appId = isCanvasEnvironment ? __app_id : 'default-app-id';
 const initialAuthToken = isCanvasEnvironment ? __initial_auth_token : null;
 
-// Use a placeholder config if the real one isn't passed in.
-// CRITICAL FIX: Ensure all required fields have a guaranteed string value to prevent the "projectId not provided" error.
+// The application will use this configuration block outside of the Canvas environment.
+// These are your actual, valid Firebase project keys.
 const defaultFirebaseConfig = {
-  apiKey: "dummy-api-key", 
-  authDomain: "dummy-domain.firebaseapp.com",
-  projectId: "dummy-project-id", // GUARANTEED non-empty string now
+  apiKey: "AIzaSyBIOV8rVBPWz4uUuuyTrV-cH6Alylui_54", 
+  authDomain: "my-wishlist-tracker.firebaseapp.com",
+  projectId: "my-wishlist-tracker", 
   storageBucket: "dummy-bucket.appspot.com",
   messagingSenderId: "123456789012",
   appId: "1:123456789012:web:abcdefgh1234567890"
@@ -35,10 +35,9 @@ try {
   db = getFirestore(app);
   auth = getAuth(app);
 } catch (e) {
-  // If initialization fails (e.g., bad API key in dummy config), log the error and ensure variables are null
+  // If initialization fails, log the error and ensure variables are null
   console.error("CRITICAL ERROR: Failed to initialize Firebase services. App UI will not load.", e);
   console.error("Full error details:", e);
-  // Set variables to null to prevent further crashes down the line
   app = null;
   db = null;
   auth = null;
@@ -278,7 +277,7 @@ const AddItemForm = ({ onAddItem }) => {
 
 
 // 4. Main Application Component
-export default function App() {
+const App = () => {
   const [items, setItems] = useState([]);
   const [view, setView] = useState('list'); // 'list' or 'detail'
   const [selectedItem, setSelectedItem] = useState(null);
@@ -452,4 +451,19 @@ export default function App() {
       <AddItemForm onAddItem={handleAddItem} />
     </div>
   );
+};
+
+
+// 5. RENDER LOGIC: THE MISSING PIECE!
+// This tells the app to draw the App component into the HTML div with id="root".
+try {
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  } else {
+    console.error("The HTML element with ID 'root' was not found. Cannot render the application.");
+  }
+} catch (error) {
+  console.error("Failed to render the application. Check the React/ReactDOM setup.", error);
 }
