@@ -1,11 +1,12 @@
 {
   "name": "personal-wishlist-store",
+  "homepage": "https://Jraconic.github.io/MyWishlistApp",
   "version": "1.0.0",
-  "description": "A personal clothing wishlist tracker built with React and Firebase.",
-  "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "test": "react-scripts test"
   },
   "dependencies": {
