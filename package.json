@@ -6,7 +6,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     
-    "predeploy": "cross-env PUBLIC_URL=/MyWishListApp npx react-scripts build",
+    "predeploy": "sh -c \"cross-env PUBLIC_URL=/MyWishListApp react-scripts build\"",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test"
   },
