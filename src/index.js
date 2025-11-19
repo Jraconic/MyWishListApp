@@ -50,7 +50,6 @@ const getWishlistCollectionRef = (userId) =>
 
 // 1. Item Card for the Main List View
 const ItemCard = ({ item, onSelect }) => {
-  // Uses elegant styling: muted background, strong text
   const placeholderUrl = `https://placehold.co/300x400/1c1917/f5f5f4?text=${item.name.substring(0, 10)}`;
 
   return (
@@ -86,18 +85,19 @@ const DetailPage = ({ item, onBack, onDelete }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-stone-50 p-6 sm:p-10 rounded-xl shadow-2xl">
+    // Increased padding (p-10) for more whitespace
+    <div className="max-w-4xl mx-auto bg-stone-50 p-10 rounded-xl shadow-2xl">
       <button
         onClick={onBack}
-        className="text-stone-600 hover:text-stone-800 transition duration-150 flex items-center mb-6 font-medium tracking-wider"
+        className="text-stone-600 hover:text-stone-800 transition duration-150 flex items-center mb-10 font-medium tracking-wider"
       >
-        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         BACK TO WISHLIST
       </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Image Section */}
-        <div className="rounded-lg overflow-hidden shadow-xl border border-stone-200">
+        <div className="rounded-lg overflow-hidden shadow-lg border border-stone-200">
           <img
             src={item.imageUrl || placeholderUrl}
             alt={item.name}
@@ -108,9 +108,10 @@ const DetailPage = ({ item, onBack, onDelete }) => {
 
         {/* Details Section */}
         <div>
-          <h1 className="text-5xl font-light text-gray-900 mb-2 tracking-wider">{item.name}</h1>
+          {/* Strong typography */}
+          <h1 className="text-6xl font-light text-gray-900 mb-4 tracking-wider">{item.name}</h1>
           <h2 className="text-xl font-medium text-stone-600 mb-6">{item.brand}</h2>
-          <p className="text-4xl font-extrabold text-stone-700 mb-8">${item.price ? item.price.toFixed(2) : 'N/A'}</p>
+          <p className="text-5xl font-extrabold text-stone-700 mb-10">${item.price ? item.price.toFixed(2) : 'N/A'}</p>
 
           <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-stone-300 pb-1">DESCRIPTION</h3>
           <p className="text-stone-700 leading-relaxed mb-8">{item.description}</p>
@@ -118,7 +119,8 @@ const DetailPage = ({ item, onBack, onDelete }) => {
           <div className="flex space-x-4">
             <button
               onClick={handleBuyNow}
-              className="px-8 py-3 bg-stone-800 text-white font-bold rounded-lg shadow-lg hover:bg-stone-900 transition duration-200 uppercase tracking-widest disabled:opacity-50"
+              // Button is slightly larger and uses a subtle shadow
+              className="px-8 py-3 bg-stone-800 text-white font-bold rounded-lg shadow-md hover:bg-stone-900 transition duration-200 uppercase tracking-widest disabled:opacity-50"
               disabled={!item.purchaseLink}
             >
               BUY NOW
@@ -406,10 +408,10 @@ const App = () => {
     );
   }
 
-  // Header styled for elegant minimalism
+  // Header styled for elegant minimalism - NOW CENTERED FOR SQUARESPACE LOOK
   const header = (
-    <div className="p-4 bg-stone-50 shadow-md mb-8 rounded-b-xl border-t-8 border-stone-800">
-      <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase">PERSONAL WISHLIST</h1>
+    <div className="p-8 bg-stone-50 shadow-md mb-12 rounded-b-xl border-t-8 border-stone-800 flex flex-col items-center">
+      <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase mb-2">PERSONAL WISHLIST</h1>
       <p className="text-xs text-stone-500 mt-2">User ID: {userId}</p>
       <p className="text-xs text-stone-600 mt-1">Click the + button to add an item.</p>
       {/* Alert the user that data is NOT persistent outside of the Canvas environment */}
@@ -423,9 +425,9 @@ const App = () => {
     // Outer body set to a soft, warm gray
     <div className="min-h-screen bg-stone-50 font-sans">
       {header}
-      <div className="p-4 sm:p-6 pb-20">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
         {view === 'list' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 sm:gap-10">
             {items.length === 0 ? (
               <p className="col-span-full text-center text-stone-500 p-10 text-lg">Your wishlist is empty! Add some items using the '+' button.</p>
             ) : (
