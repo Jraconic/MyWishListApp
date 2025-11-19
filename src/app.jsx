@@ -139,7 +139,7 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
         <div className="p-4">
           <h3 className="text-xl font-bold text-gray-900 tracking-wide truncate">{item.name}</h3>
           <p className="text-sm text-stone-500">{item.brand}</p>
-          <p className="text-2xl font-extrabold text-stone-700 mt-2">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
+          <p className="text-xl font-extrabold text-stone-700 mt-2">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
         </div>
       </div>
     );
