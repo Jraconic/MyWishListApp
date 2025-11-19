@@ -12,7 +12,7 @@ const appId = isCanvasEnvironment ? __app_id : 'default-app-id';
 const initialAuthToken = isCanvasEnvironment ? __initial_auth_token : null;
 
 // The application will use this configuration block outside of the Canvas environment.
-// These are your actual, valid Firebase project keys.
+// NOTE: YOUR REAL KEYS HAVE BEEN SAFELY INSERTED BELOW.
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBIOV8rVBPWz4uUuuyTrV-cH6Alylui_54", 
   authDomain: "my-wishlist-tracker.firebaseapp.com",
@@ -50,12 +50,12 @@ const getWishlistCollectionRef = (userId) =>
 
 // 1. Item Card for the Main List View
 const ItemCard = ({ item, onSelect }) => {
+  // Uses elegant styling: muted background, strong text
   const placeholderUrl = `https://placehold.co/300x400/1c1917/f5f5f4?text=${item.name.substring(0, 10)}`;
 
   return (
     <div
       onClick={() => onSelect(item)}
-      // Muted background and subtle shadow for an elegant feel
       className="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden cursor-pointer transform transition duration-300 hover:shadow-xl hover:scale-[1.02]"
     >
       <div className="h-64 sm:h-80 w-full overflow-hidden">
@@ -67,11 +67,8 @@ const ItemCard = ({ item, onSelect }) => {
         />
       </div>
       <div className="p-4">
-        {/* Stronger title for high contrast */}
         <h3 className="text-xl font-bold text-gray-900 tracking-wide truncate">{item.name}</h3>
-        {/* Softer color for secondary text */}
         <p className="text-sm text-stone-500">{item.brand}</p>
-        {/* Deep, rich color for the price accent */}
         <p className="text-2xl font-extrabold text-stone-700 mt-2">${item.price ? item.price.toFixed(2) : 'N/A'}</p>
       </div>
     </div>
@@ -92,7 +89,6 @@ const DetailPage = ({ item, onBack, onDelete }) => {
     <div className="max-w-4xl mx-auto bg-stone-50 p-6 sm:p-10 rounded-xl shadow-2xl">
       <button
         onClick={onBack}
-        // Accent color matching the new theme
         className="text-stone-600 hover:text-stone-800 transition duration-150 flex items-center mb-6 font-medium tracking-wider"
       >
         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -112,7 +108,6 @@ const DetailPage = ({ item, onBack, onDelete }) => {
 
         {/* Details Section */}
         <div>
-          {/* Strong typography */}
           <h1 className="text-5xl font-light text-gray-900 mb-2 tracking-wider">{item.name}</h1>
           <h2 className="text-xl font-medium text-stone-600 mb-6">{item.brand}</h2>
           <p className="text-4xl font-extrabold text-stone-700 mb-8">${item.price ? item.price.toFixed(2) : 'N/A'}</p>
@@ -123,7 +118,6 @@ const DetailPage = ({ item, onBack, onDelete }) => {
           <div className="flex space-x-4">
             <button
               onClick={handleBuyNow}
-              // Dark, monochromatic button style
               className="px-8 py-3 bg-stone-800 text-white font-bold rounded-lg shadow-lg hover:bg-stone-900 transition duration-200 uppercase tracking-widest disabled:opacity-50"
               disabled={!item.purchaseLink}
             >
@@ -186,7 +180,6 @@ const AddItemForm = ({ onAddItem }) => {
     return (
       <button
         onClick={() => setShowForm(true)}
-        // Floating button styled to match the dark accent
         className="fixed bottom-6 right-6 z-50 p-4 bg-stone-800 text-white rounded-full shadow-lg hover:bg-stone-900 transition duration-200 transform hover:scale-105"
         aria-label="Add new item"
       >
@@ -454,7 +447,7 @@ const App = () => {
 };
 
 
-// 5. RENDER LOGIC: THE MISSING PIECE!
+// 5. RENDER LOGIC: THE CRITICAL FIX!
 // This tells the app to draw the App component into the HTML div with id="root".
 try {
   const rootElement = document.getElementById('root');
