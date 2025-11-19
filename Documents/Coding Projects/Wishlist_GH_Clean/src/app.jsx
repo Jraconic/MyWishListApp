@@ -349,10 +349,7 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
       <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase mb-2">PERSONAL WISHLIST</h1>
       <p className="ttext-xs text-stone-500 mt-2 hidden">User ID: {userId}</p>
       <p className="text-xs text-stone-600 mt-1">Click the + button to add an item.</p>
-      {/* Alert the user that data is NOT persistent outside of the Canvas environment */}
-      {!isCanvasEnvironment && (
-        <p className="text-xs text-red-600 mt-1 font-bold">WARNING: Data is not saved permanently in this test environment.</p>
-      )}
+      
     </div>
   );
 
