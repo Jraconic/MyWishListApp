@@ -4,13 +4,45 @@ import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged }
 import { getFirestore, collection, query, onSnapshot, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 // --- CONFIGURATION & FIREBASE SETUP ---
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Use fallback values if environment variables (__app_id, __firebase_config) are not provided 
+// (which they aren't on external hosts like Vercel). This prevents the app from crashing.
+const isCanvasEnvironment = typeof __app_id !== 'undefined';
+const appId = isCanvasEnvironment ? __app_id : 'default-app-id';
+const initialAuthToken = isCanvasEnvironment ? __initial_auth_token : null;
+
+// Use a placeholder config if the real one isn't passed in.
+// CRITICAL FIX: Ensure all required fields have a guaranteed string value to prevent the "projectId not provided" error.
+const defaultFirebaseConfig = {
+  apiKey: "dummy-api-key", 
+  authDomain: "dummy-domain.firebaseapp.com",
+  projectId: "dummy-project-id", // GUARANTEED non-empty string now
+  storageBucket: "dummy-bucket.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdefgh1234567890"
+};
+
+const firebaseConfig = isCanvasEnvironment ? JSON.parse(__firebase_config) : defaultFirebaseConfig;
+
+// Initialize Firebase App and services
+let app;
+let db;
+let auth;
+
+try {
+  // Attempt to initialize Firebase with the configuration
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+} catch (e) {
+  // If initialization fails (e.g., bad API key in dummy config), log the error and ensure variables are null
+  console.error("CRITICAL ERROR: Failed to initialize Firebase services. App UI will not load.", e);
+  console.error("Full error details:", e);
+  // Set variables to null to prevent further crashes down the line
+  app = null;
+  db = null;
+  auth = null;
+}
 
 const getWishlistCollectionRef = (userId) => 
   collection(db, `artifacts/${appId}/users/${userId}/wishlist`);
@@ -256,6 +288,13 @@ export default function App() {
 
   // --- Auth and Firestore Setup ---
   useEffect(() => {
+    // Only attempt authentication if Firebase app was successfully initialized
+    if (!app) {
+        setIsAuthReady(true);
+        setLoading(false);
+        return; // Stop here if Firebase failed to initialize
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
@@ -264,11 +303,13 @@ export default function App() {
           if (initialAuthToken) {
             await signInWithCustomToken(auth, initialAuthToken);
           } else {
+            // Sign in anonymously will use the dummy config, which is fine for rendering the UI
             const anonymousUser = await signInAnonymously(auth);
             setUserId(anonymousUser.user.uid);
           }
         } catch (error) {
-          console.error("Authentication Error:", error);
+          // Log an error if authentication fails, but don't crash the UI
+          console.error("Authentication Error: Firebase config may be invalid outside Canvas. UI rendered without live data.", error);
         }
       }
       setIsAuthReady(true);
@@ -280,9 +321,17 @@ export default function App() {
 
   // --- Firestore Real-time Listener (Data Fetching) ---
   useEffect(() => {
-    if (!isAuthReady || !userId) return;
+    // Only proceed if Firebase is initialized and auth is ready
+    if (!app || !isAuthReady || !userId) {
+        if (!app) {
+            setLoading(false);
+            setItems([]); // Clear items if the app never initialized
+        }
+        return;
+    }
 
     setLoading(true);
+    // Note: This query may fail if the Firebase Config is dummy, but the UI should still load.
     const q = query(getWishlistCollectionRef(userId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -294,33 +343,55 @@ export default function App() {
       setItems(fetchedItems);
       setLoading(false);
     }, (error) => {
-      console.error("Firestore Error:", error);
+      // Catch Firestore errors here gracefully
+      console.error("Firestore Error: Data fetch failed, likely due to dummy config. UI rendered but list is empty.", error);
+      setItems([]); // Ensure the UI displays the "empty wishlist" message instead of a blank screen
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [isAuthReady, userId]);
+  }, [app, isAuthReady, userId]);
 
   // --- Firestore Operations ---
+  // The add/delete operations will likely fail with the dummy config, but they won't crash the app.
   const handleAddItem = useCallback(async (itemData) => {
-    if (!userId) return;
+    if (!userId || !app) {
+        console.error("Cannot add item. Firebase app not initialized.");
+        // If save fails, add the item to local state so the user sees it (temporary persistence)
+        setItems(prev => [{ id: Date.now().toString(), ...itemData }, ...prev]);
+        return;
+    }
     try {
       await addDoc(getWishlistCollectionRef(userId), itemData);
     } catch (e) {
-      console.error("Error adding document: ", e);
+      console.error("Error adding document. You must connect a real Firebase project for data persistence.", e);
+      // Optional: Add the item to local state so the user sees it, even if it's not saved permanently
+      setItems(prev => [{ id: Date.now().toString(), ...itemData }, ...prev]);
     }
-  }, [userId]);
+  }, [userId, app]);
 
   const handleDeleteItem = useCallback(async (itemId) => {
     if (!userId || !window.confirm("Are you sure you want to remove this item from your wishlist?")) return;
+    if (!app) {
+        console.error("Cannot delete item. Firebase app not initialized.");
+        setItems(prev => prev.filter(item => item.id !== itemId));
+        setView('list'); 
+        setSelectedItem(null);
+        return;
+    }
+
     try {
       await deleteDoc(doc(getWishlistCollectionRef(userId), itemId));
       setView('list'); 
       setSelectedItem(null);
     } catch (e) {
-      console.error("Error deleting document: ", e);
+      console.error("Error deleting document. Data persistence is required for permanent delete.", e);
+      // Remove from local state even if the delete fails permanently
+      setItems(prev => prev.filter(item => item.id !== itemId));
+      setView('list'); 
+      setSelectedItem(null);
     }
-  }, [userId]);
+  }, [userId, app]);
 
   // --- View Handlers ---
   const handleSelect = (item) => {
@@ -346,9 +417,13 @@ export default function App() {
   // Header styled for elegant minimalism
   const header = (
     <div className="p-4 bg-stone-50 shadow-md mb-8 rounded-b-xl border-t-8 border-stone-800">
-      <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase">Personal Wishlist</h1>
+      <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase">PERSONAL WISHLIST</h1>
       <p className="text-xs text-stone-500 mt-2">User ID: {userId}</p>
       <p className="text-xs text-stone-600 mt-1">Click the + button to add an item.</p>
+      {/* Alert the user that data is NOT persistent outside of the Canvas environment */}
+      {!isCanvasEnvironment && (
+        <p className="text-xs text-red-600 mt-1 font-bold">WARNING: Data will NOT be saved permanently on this host.</p>
+      )}
     </div>
   );
 
