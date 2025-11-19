@@ -1,0 +1,34 @@
+Logs
+
+logs
+.log
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+Dependency Directories
+
+/node_modules
+/jspm_packages
+
+Build / Distribution
+
+/build
+/dist
+/out
+/release
+
+Environment Variables
+
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+IDE and OS Files
+
+.vscode
+.idea
+.DS_Store
