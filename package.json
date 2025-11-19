@@ -9,6 +9,7 @@
     "deploy": "gh-pages -d build",
     "test": "react-scripts test"
   },
+  "predeploy": "PUBLIC_URL=/MyWishlistApp/ npm run build",
   "dependencies": {
     "firebase": "^10.12.3",
     "react": "^18.2.0",
