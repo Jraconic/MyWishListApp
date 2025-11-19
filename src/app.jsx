@@ -179,8 +179,8 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
           {/* Details Section */}
           <div>
             <h1 className="text-6xl font-light text-gray-900 mb-4 tracking-wider">{item.name}</h1>
-            <h2 className="text-xl font-medium text-stone-600 mb-6">{item.brand}</h2>
-            <p className="text-5xl font-extrabold text-stone-700 mb-10">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
+            <h2 className="text-2xl font-medium text-stone-600 mb-6">{item.brand}</h2>
+            <p className="text-2xl font-extrabold text-stone-700 mb-10">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
 
             <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-stone-300 pb-1">DESCRIPTION</h3>
             <p className="text-stone-700 leading-relaxed mb-8">{item.description}</p>
