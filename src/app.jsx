@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { collection, query, onSnapshot, doc, addDoc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 
-// Component Imports
-import Header from '/components/Header.jsx';
-import FloatingButton from '/components/FloatingButton.jsx';
-import ItemCard from '/components/ItemCard.jsx';
-import DetailPage from '/components/DetailPage.jsx';
-import AddForm from '/components/AddForm.jsx';
-import EditForm from '/components/EditForm.jsx';
+// Component Imports - FIX: Removed .jsx extension for better module resolution
+import Header from './components/Header';
+import FloatingButton from './components/FloatingButton';
+import ItemCard from './components/ItemCard';
+import DetailPage from './components/DetailPage';
+import AddForm from './components/AddForm';
+import EditForm from './components/EditForm';
 
 // 4. Main Application Component
 export default function App({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) {
