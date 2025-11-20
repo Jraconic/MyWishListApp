@@ -1,29 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
-import { collection, query, onSnapshot, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { collection, query, onSnapshot, doc, addDoc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 
-// Main App component receives Firebase tools and context via props from index.js
-const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
+// Component Imports
+import Header from '/components/Header.jsx';
+import FloatingButton from '/components/FloatingButton.jsx';
+import ItemCard from '/components/ItemCard.jsx';
+import DetailPage from '/components/DetailPage.jsx';
+import AddForm from '/components/AddForm.jsx';
+import EditForm from '/components/EditForm.jsx';
+
+// 4. Main Application Component
+export default function App({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) {
   const [items, setItems] = useState([]);
-  const [view, setView] = useState('list'); // 'list' or 'detail'
+  const [view, setView] = useState('list'); // 'list', 'detail', 'add', or 'edit'
   const [selectedItem, setSelectedItem] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Helper to get the correct Firestore collection path
-  const getWishlistCollectionRef = useCallback((uId) => 
-    collection(db, `artifacts/${appId}/users/${uId}/wishlist`), [db, appId]);
+  // --- Utility Functions ---
+  const getWishlistCollectionRef = useCallback((uid) => {
+    if (!db) return null;
+    return collection(db, `artifacts/${appId}/users/${uid}/wishlist`);
+  }, [db, appId]);
 
-  // --- Auth Setup ---
+  // --- Auth and Firestore Setup ---
   useEffect(() => {
     if (!auth) {
         setIsAuthReady(true);
         setLoading(false);
-        return; 
+        return;
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
       } else {
@@ -31,12 +41,11 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
           if (initialAuthToken) {
             await signInWithCustomToken(auth, initialAuthToken);
           } else {
-            // Signs in anonymously using the valid config (your keys)
             const anonymousUser = await signInAnonymously(auth);
             setUserId(anonymousUser.user.uid);
           }
         } catch (error) {
-          console.error("Authentication Error:", error);
+          console.error("Authentication Error: Failed to sign in.", error);
         }
       }
       setIsAuthReady(true);
@@ -48,13 +57,7 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
 
   // --- Firestore Real-time Listener (Data Fetching) ---
   useEffect(() => {
-    if (!db || !isAuthReady || !userId) {
-        if (!db) {
-            setLoading(false);
-            setItems([]);
-        }
-        return;
-    }
+    if (!db || !isAuthReady || !userId) return;
 
     setLoading(true);
     const q = query(getWishlistCollectionRef(userId));
@@ -64,12 +67,11 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
         id: doc.id,
         ...doc.data()
       }));
-      // Sort by date added (newest first)
       fetchedItems.sort((a, b) => (b.dateAdded?.toMillis() || 0) - (a.dateAdded?.toMillis() || 0));
       setItems(fetchedItems);
       setLoading(false);
     }, (error) => {
-      console.error("Firestore Data Fetch Error:", error);
+      console.error("Firestore Error: Data fetch failed.", error);
       setItems([]);
       setLoading(false);
     });
@@ -78,33 +80,47 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
   }, [db, isAuthReady, userId, getWishlistCollectionRef]);
 
   // --- Firestore Operations ---
-  const handleAddItem = useCallback(async (itemData) => {
-    if (!userId || !db) return;
+  const handleAddItem = useCallback(async (formData) => {
+    if (!db || !userId) return;
     try {
+      const itemData = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        dateAdded: serverTimestamp(),
+      };
       await addDoc(getWishlistCollectionRef(userId), itemData);
     } catch (e) {
-      console.error("Error adding document: You must ensure your Firebase rules allow write access.", e);
-      // Fallback: Add to local state so user sees it even if it fails to persist
-      setItems(prev => [{ id: Date.now().toString(), ...itemData }, ...prev]);
+      console.error("Error adding document: ", e);
     }
-  }, [userId, db, getWishlistCollectionRef]);
+  }, [db, userId, getWishlistCollectionRef]);
+
+  const handleEditItem = useCallback(async (itemId, formData) => {
+    if (!db || !userId) return;
+    try {
+      const itemRef = doc(getWishlistCollectionRef(userId), itemId);
+      const updatedData = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        dateUpdated: serverTimestamp(),
+      };
+      await updateDoc(itemRef, updatedData);
+      setView('detail');
+    } catch (e) {
+      console.error("Error editing document: ", e);
+    }
+  }, [db, userId, getWishlistCollectionRef]);
 
   const handleDeleteItem = useCallback(async (itemId) => {
-    if (!userId || !window.confirm("Are you sure you want to remove this item from your wishlist?")) return;
-    if (!db) return;
-
+    if (!db || !userId) return;
+    if (!window.confirm("Are you sure you want to remove this item from your wishlist?")) return;
     try {
       await deleteDoc(doc(getWishlistCollectionRef(userId), itemId));
-      setView('list'); 
+      setView('list');
       setSelectedItem(null);
     } catch (e) {
-      console.error("Error deleting document:", e);
-      // Fallback: Remove from local state
-      setItems(prev => prev.filter(item => item.id !== itemId));
-      setView('list'); 
-      setSelectedItem(null);
+      console.error("Error deleting document: ", e);
     }
-  }, [userId, db, getWishlistCollectionRef]);
+  }, [db, userId, getWishlistCollectionRef]);
 
   // --- View Handlers ---
   const handleSelect = (item) => {
@@ -116,221 +132,13 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
     setSelectedItem(null);
     setView('list');
   };
-
-  // --- UI Components ---
-
-  // Item Card for the Main List View
-  const ItemCard = ({ item }) => {
-    const placeholderUrl = `https://placehold.co/300x400/1c1917/f5f5f4?text=${item.name.substring(0, 10)}`;
-
-    return (
-      <div
-        onClick={() => handleSelect(item)}
-        className="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden cursor-pointer transform transition duration-300 hover:shadow-xl hover:scale-[1.02]"
-      >
-        <div className="h-64 sm:h-80 w-full overflow-hidden">
-          <img
-            src={item.imageUrl || placeholderUrl}
-            alt={item.name}
-            className="w-full h-full object-cover transition duration-500 group-hover:opacity-75"
-            onError={(e) => { e.target.onerror = null; e.target.src = placeholderUrl; }}
-          />
-        </div>
-        <div className="p-4">
-          <h3 className="text-xl font-bold text-gray-900 tracking-wide truncate">{item.name}</h3>
-          <p className="text-sm text-stone-500">{item.brand}</p>
-          <p className="text-xl font-extrabold text-stone-700 mt-2">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
-        </div>
-      </div>
-    );
+  
+  const handleOpenEdit = () => {
+    setView('edit');
   };
-
-  // Detail Page Component
-  const DetailPage = ({ item }) => {
-    const placeholderUrl = `https://placehold.co/600x800/1c1917/f5f5f4?text=${item.name.substring(0, 10)}`;
-
-    const handleBuyNow = () => {
-      if (item.purchaseLink) {
-        window.open(item.purchaseLink, '_blank');
-      }
-    };
-
-    return (
-      <div className="max-w-4xl mx-auto bg-stone-50 p-10 rounded-xl shadow-2xl">
-        <button
-          onClick={handleBack}
-          className="text-stone-600 hover:text-stone-800 transition duration-150 flex items-center mb-10 font-medium tracking-wider"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-          BACK TO WISHLIST
-        </button>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Image Section */}
-          <div className="rounded-lg overflow-hidden shadow-lg border border-stone-200">
-            <img
-              src={item.imageUrl || placeholderUrl}
-              alt={item.name}
-              className="w-full h-full object-cover"
-              onError={(e) => { e.target.onerror = null; e.target.src = placeholderUrl; }}
-            />
-          </div>
-
-          {/* Details Section */}
-          <div>
-            <h1 className="text-6xl font-light text-gray-900 mb-4 tracking-wider">{item.name}</h1>
-            <h2 className="text-xl font-medium text-stone-600 mb-6">{item.brand}</h2>
-            <p className="text-4xl font-extrabold text-stone-700 mb-10">${item.price ? parseFloat(item.price).toFixed(2) : 'N/A'}</p>
-
-            <h3 className="text-lg font-bold text-gray-800 mb-2 border-b border-stone-300 pb-1">DESCRIPTION</h3>
-            <p className="text-stone-700 leading-relaxed mb-8">{item.description}</p>
-
-            <div className="flex space-x-4">
-              <button
-                onClick={handleBuyNow}
-                className="px-8 py-3 bg-stone-800 text-white font-bold rounded-lg shadow-md hover:bg-stone-900 transition duration-200 uppercase tracking-widest disabled:opacity-50"
-                disabled={!item.purchaseLink}
-              >
-                BUY NOW
-              </button>
-              <button
-                onClick={() => handleDeleteItem(item.id)}
-                className="px-4 py-3 bg-red-500 text-white font-medium rounded-lg shadow-md hover:bg-red-600 transition duration-200"
-              >
-                REMOVE
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Form to add new items
-  const AddItemForm = () => {
-    const [formData, setFormData] = useState({
-      name: '', brand: '', price: '', purchaseLink: '', imageUrl: '', description: '',
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showForm, setShowForm] = useState(false);
-
-    const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!formData.name || !formData.purchaseLink) return;
-
-      setIsSubmitting(true);
-      try {
-        const itemData = {
-          ...formData,
-          price: parseFloat(formData.price) || 0,
-          dateAdded: serverTimestamp(),
-        };
-        await handleAddItem(itemData);
-
-        setFormData({ name: '', brand: '', price: '', purchaseLink: '', imageUrl: '', description: '' });
-        setShowForm(false);
-      } catch (error) {
-        console.error("Error adding document: ", error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    if (!showForm) {
-      return (
-        <button
-          onClick={() => setShowForm(true)}
-          className="fixed bottom-6 right-6 z-50 p-4 bg-stone-800 text-white rounded-full shadow-lg hover:bg-stone-900 transition duration-200 transform hover:scale-105"
-          aria-label="Add new item"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-        </button>
-      );
-    }
-
-    return (
-      <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex justify-center items-center p-4">
-        <div className="bg-stone-50 p-8 rounded-xl shadow-2xl w-full max-w-lg">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900 tracking-wide">ADD NEW ITEM</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Item Name (e.g., Slim Fit Jeans)"
-              required
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            />
-            <input
-              type="text"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              placeholder="Brand (e.g., Levi's)"
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            />
-            <input
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="Price (e.g., 89.99)"
-              step="0.01"
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            />
-            <input
-              type="url"
-              name="purchaseLink"
-              value={formData.purchaseLink}
-              onChange={handleChange}
-              placeholder="External Purchase Link (REQUIRED)"
-              required
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            />
-            <input
-              type="url"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              placeholder="Image URL (Optional)"
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            />
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Description and Notes"
-              rows="3"
-              className="w-full p-3 border border-stone-300 rounded-lg focus:ring-stone-500 focus:border-stone-500 bg-white"
-            ></textarea>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-6 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-100 transition duration-150"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-stone-800 text-white font-medium rounded-lg hover:bg-stone-900 transition duration-150 disabled:opacity-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : 'Add Item'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+  
+  const handleCancelForm = () => {
+    setView(selectedItem ? 'detail' : 'list');
   };
 
   // --- Rendering Logic ---
@@ -343,40 +151,55 @@ const App = ({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) => {
     );
   }
 
-  // Header styled for elegant minimalism - CENTERED FOR SQUARESPACE LOOK
-  const header = (
-    <div className="p-8 bg-stone-50 shadow-md mb-12 rounded-b-xl border-t-8 border-stone-800 flex flex-col items-center">
-      <h1 className="text-4xl font-light text-gray-900 tracking-widest uppercase mb-2">PERSONAL WISHLIST</h1>
-      <p className="ttext-xs text-stone-500 mt-2 hidden">User ID: {userId}</p>
-      <p className="text-xs text-stone-600 mt-1">Click the + button to add an item.</p>
-      
-    </div>
-  );
-
   return (
+    // Outer body set to a soft, warm gray
     <div className="min-h-screen bg-stone-50 font-sans">
-      {header}
+      <Header userId={userId} />
+      
       <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
+        
+        {/* List View */}
         {view === 'list' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 sm:gap-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8">
             {items.length === 0 ? (
               <p className="col-span-full text-center text-stone-500 p-10 text-lg">Your wishlist is empty! Add some items using the '+' button.</p>
             ) : (
               items.map(item => (
-                <ItemCard key={item.id} item={item} />
+                <ItemCard key={item.id} item={item} onSelect={handleSelect} />
               ))
             )}
           </div>
         )}
 
+        {/* Detail View */}
         {view === 'detail' && selectedItem && (
-          <DetailPage item={selectedItem} />
+          <DetailPage 
+            item={selectedItem} 
+            onBack={handleBack} 
+            onDelete={handleDeleteItem} 
+            onOpenEdit={handleOpenEdit}
+          />
         )}
+        
+        {/* Add Form View */}
+        {view === 'add' && (
+          <AddForm onAddItem={handleAddItem} onCancel={handleCancelForm} />
+        )}
+        
+        {/* Edit Form View */}
+        {view === 'edit' && selectedItem && (
+          <EditForm 
+            item={selectedItem} 
+            onEditItem={handleEditItem} 
+            onCancel={handleCancelForm} 
+          />
+        )}
+        
       </div>
 
-      <AddItemForm />
+      {view !== 'add' && view !== 'edit' && (
+        <FloatingButton onOpenAdd={() => setView('add')} />
+      )}
     </div>
   );
-};
-
-export default App;
+}
