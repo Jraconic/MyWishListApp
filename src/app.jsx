@@ -9,7 +9,7 @@ import ItemCard from './components/ItemCard';
 import DetailPage from './components/DetailPage';
 import AddForm from './components/AddForm';
 import EditForm from './components/EditForm';
-import ConfirmationModal from '/components/ConfirmationModal';
+import ConfirmationModal from './components/ConfirmationModal';
 
 // 4. Main Application Component
 export default function App({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) {
