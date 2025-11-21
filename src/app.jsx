@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { collection, query, onSnapshot, doc, addDoc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 
-// Component Imports - FIX: Removed .jsx extension for better module resolution
+// Component Imports (Note: file extensions are omitted for build stability)
 import Header from './components/Header';
 import FloatingButton from './components/FloatingButton';
 import ItemCard from './components/ItemCard';
 import DetailPage from './components/DetailPage';
 import AddForm from './components/AddForm';
 import EditForm from './components/EditForm';
+import ConfirmationModal from '/components/ConfirmationModal';
 
 // 4. Main Application Component
 export default function App({ db, auth, appId, initialAuthToken, isCanvasEnvironment }) {
@@ -18,6 +19,9 @@ export default function App({ db, auth, appId, initialAuthToken, isCanvasEnviron
   const [userId, setUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // State to manage the delete confirmation modal
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // --- Utility Functions ---
   const getWishlistCollectionRef = useCallback((uid) => {
@@ -112,15 +116,24 @@ export default function App({ db, auth, appId, initialAuthToken, isCanvasEnviron
 
   const handleDeleteItem = useCallback(async (itemId) => {
     if (!db || !userId) return;
-    if (!window.confirm("Are you sure you want to remove this item from your wishlist?")) return;
     try {
       await deleteDoc(doc(getWishlistCollectionRef(userId), itemId));
       setView('list');
       setSelectedItem(null);
     } catch (e) {
       console.error("Error deleting document: ", e);
+    } finally {
+        setConfirmDeleteId(null); // Always close the modal
     }
   }, [db, userId, getWishlistCollectionRef]);
+  
+  // --- Modal Handlers ---
+  const handleOpenDelete = (itemId) => {
+      setConfirmDeleteId(itemId);
+  }
+  const handleCancelDelete = () => {
+      setConfirmDeleteId(null);
+  }
 
   // --- View Handlers ---
   const handleSelect = (item) => {
@@ -176,7 +189,7 @@ export default function App({ db, auth, appId, initialAuthToken, isCanvasEnviron
           <DetailPage 
             item={selectedItem} 
             onBack={handleBack} 
-            onDelete={handleDeleteItem} 
+            onOpenDelete={handleOpenDelete} 
             onOpenEdit={handleOpenEdit}
           />
         )}
@@ -199,6 +212,15 @@ export default function App({ db, auth, appId, initialAuthToken, isCanvasEnviron
 
       {view !== 'add' && view !== 'edit' && (
         <FloatingButton onOpenAdd={() => setView('add')} />
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+          <ConfirmationModal
+              itemName={items.find(item => item.id === confirmDeleteId)?.name || 'this item'}
+              onConfirm={() => handleDeleteItem(confirmDeleteId)}
+              onCancel={handleCancelDelete}
+          />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DetailPage({ item, onBack, onDelete, onOpenEdit }) {
+export default function DetailPage({ item, onBack, onOpenDelete, onOpenEdit }) {
     const placeholderUrl = `https://placehold.co/600x800/1c1917/f5f5f4?text=${item.name ? item.name.substring(0, 10) : 'Item'}`;
 
     const handleBuyNow = () => {
@@ -61,9 +61,9 @@ export default function DetailPage({ item, onBack, onDelete, onOpenEdit }) {
                         >
                             EDIT
                         </button>
-                        {/* Remove Button */}
+                        {/* Remove Button - Calls the function to open the modal */}
                         <button
-                            onClick={() => onDelete(item.id)}
+                            onClick={() => onOpenDelete(item.id)}
                             className="flex-grow text-center px-6 py-3 bg-red-500 text-white font-medium rounded-lg shadow-md hover:bg-red-600 transition duration-200"
                         >
                             DELETE
